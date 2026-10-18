@@ -1,0 +1,191 @@
+# 织页（WeavePage）技术栈选型说明
+
+> 文档版本：1.0  
+> 更新日期：2026-10-19  
+> 用途：解释本项目为什么采用当前技术、主要替代方案的取舍，以及何时应重新评估。面试回答以项目真实实现和验证结果为准。
+
+## 1. 选型原则
+
+织页是一个 React 组件生成工作台：前端需要编辑输入、展示代码、与预览交互；后端负责模型调用、检索、校验、工作流和持久化。选型遵循以下原则：
+
+1. **围绕产品需求，而不是追逐热门技术。** 首版只做单个 React 组件的生成、预览和修改。
+2. **前后端职责清楚。** TypeScript 应用由 pnpm workspace 管理；Python API 由 uv 管理；双方通过 HTTP 和 OpenAPI 契约协作。
+3. **先选最小可行方案。** 单次生成先用普通服务流程；出现真实状态、分支、恢复需求后，再引入 Agent 编排和持久化基础设施。
+4. **把执行模型生成代码当作安全边界问题。** 预览方案需要单独验证；不能把“放进 iframe”直接等同于可靠沙箱。
+5. **能说明取舍和退出条件。** 选择意味着某些成本和限制；当需求改变时，按触发条件重新评估。
+
+## 2. 决策状态总览
+
+| 范畴 | 决策状态 | 当前选择 / 方向 |
+|---|---|---|
+| Web 框架 | 已选 | React + TypeScript |
+| Web 构建工具 | 已选 | Vite，客户端工作台为主 |
+| JavaScript Monorepo | 已选 | pnpm workspace |
+| API 框架 | 已选 | Python + FastAPI + Pydantic |
+| Python 项目/依赖管理 | 已选 | uv，使用 `pyproject.toml` 与 `uv.lock` |
+| API 契约 | 方向已定、生成工具待定 | FastAPI OpenAPI 为事实来源；后续生成 TS 类型/客户端 |
+| Agent 编排 | 分阶段决定 | 先普通 Python 服务流程；工作流复杂后评估 LangGraph |
+| 模型供应商 | 未选 | 先比较 API 兼容性、结构化输出、可用性、成本与数据政策 |
+| 数据库 / 向量检索 | 未选 | 小型精选资料先用简单目录；持久化和语义检索按需求选型 |
+| 生成代码预览运行时 | 未选，需技术验证 | 评估浏览器内运行与隔离服务方案后再决定 |
+| React Native | 暂缓 | 未来新增 Expo 应用；不作为首版 Web 的依赖 |
+
+**面试表达原则：** 已选栈可以讲选择依据；未选项要明确说“正在验证/尚未选型”。不要把计划中的 LangGraph、PostgreSQL、pgvector、沙箱或 React Native 说成已经实现。
+
+## 3. 前端选型
+
+### 3.1 React + TypeScript，而不是 Vue
+
+| 维度 | React + TypeScript | Vue + TypeScript | 本项目判断 |
+|---|---|---|---|
+| 组件模型 | JavaScript/TypeScript 函数组件，UI 由组件组合 | 单文件组件、模板与响应式系统，官方集成度高 | 两者都能实现工作台；不能笼统说一方技术上更优 |
+| 项目目标 | 生成物本身是 React 组件 | 若产品生成 Vue 组件则自然匹配 | 织页已明确以 React 组件作为生成目标，React 能直接复用目标生态概念和预览依赖 |
+| 生态与能力迁移 | 大量 React 组件、编辑器和预览方案可供评估；React Native 提供独立原生 UI 路线 | Vue 的模板式开发体验和官方周边整合较好 | 选择 React 让“工作台”和“生成物”技术一致；选择也符合开发者希望在作品集中补强 React 的目标 |
+| 代价 | React 应用要自行组合路由、数据获取、状态等方案；JSX/状态模型需要掌握 | Vue 带有更完整的框架式约定，对熟悉 Vue 的开发者上手顺畅 | 本项目首版小，不需要为了少量页面再引入复杂前端框架层 |
+
+**结论：** React 是产品目标和学习目标共同决定的选择，不是 Vue 不适合。Vue 同样可实现该产品；若未来产品生成目标改成 Vue SFC，或主要团队改用 Vue，应该重新评估，而不是坚持 React 的惯性。
+
+### 3.2 Vite，而不是 Next.js
+
+**选择 Vite 的原因：** 首版是一个需要大量浏览器交互的组件工作台；代码编辑、预览、状态流转主要在客户端完成。API 已单独由 FastAPI 提供，本项目目前没有必须由前端框架承担的服务端渲染、SEO 页面、Server Components 或全栈路由需求。Vite 负责 React 开发服务器和构建即可，职责边界直观。
+
+**为什么暂不选 Next.js：** Next.js 的 App Router、服务端/客户端组件及服务器渲染能力适合有 SEO、服务端数据装配、全栈路由或同一应用内服务端逻辑的产品。当前引入它会增加另一套服务器运行时和约定，而不会直接解决生成代码的隔离预览或 Agent 编排问题。
+
+**取舍与重评条件：** 如果产品转向公开组件目录/内容站，需要搜索引擎收录、服务端渲染或前端与 API 合并部署，再对 Vite SPA 与 Next.js 做部署、缓存和数据流比较。Vite 并不自动提供完整 SSR 应用框架；Next.js 也不是所有 React 项目的默认必选项。
+
+### 3.3 为什么将 React Native 放到后续
+
+目标中的手机浏览器 H5 是同一个响应式 React Web 应用，不需要 React Native。React Native 面向原生 App，使用 `View`、`Text` 等原生组件；它不是把 Web DOM 自动打包成手机应用。
+
+未来若有原生 App 需求，可以新增 Expo + React Native 应用，并复用 API 合约、请求客户端、领域规则和设计 Tokens。Web 页面、复杂代码编辑器和预览 UI 要按平台单独实现或评估 WebView，不承诺组件层完全共享。
+
+## 4. Monorepo 与包管理
+
+### 4.1 pnpm workspace，而不是 npm workspaces
+
+两者都支持在一个仓库中管理多个 JavaScript 包并建立本地链接，npm workspaces 是有效替代方案。织页选择 pnpm 是因为项目已经使用 pnpm，workspace 配置明确，能用统一锁文件和 `--filter` 命令面向特定应用执行任务；它与未来的 `apps/web`、`apps/mobile`、`packages/*` 结构相匹配。
+
+**这不是选择 pnpm 就自动获得完整 Monorepo 编排。** pnpm workspace 负责包安装、链接和基础脚本调用；目前包数量很少，不加 Nx/Turborepo。只有 CI 构建变慢、需要依赖图、任务缓存或受影响范围计算时，才评估额外任务编排工具。
+
+### 4.2 为什么 Python API 不放进 pnpm workspace
+
+pnpm 管理 Node/TypeScript 依赖；Python API 有自己的运行时、依赖解析和锁文件，使用 uv 在 `services/api` 内独立管理。跨语言边界使用 HTTP API，而不是让 Python 直接导入 TypeScript 源码。
+
+FastAPI 自动产生的 OpenAPI 描述将作为契约来源；后续可以从它生成 TypeScript 类型或 API 客户端，减少两端手写类型漂移。生成工具需在该需求出现时再选定。
+
+## 5. Python 后端与依赖管理
+
+### 5.1 FastAPI，而不是 Django 或 Flask
+
+| 选项 | 强项 | 对织页的适配 | 未选的原因 / 何时更适合 |
+|---|---|---|---|
+| **FastAPI（选择）** | API-first；Python 类型提示与 Pydantic 验证；基于 OpenAPI 自动生成接口描述和交互式文档；支持异步接口 | 织页的核心后端是供 React 调用的 JSON API；LLM 和检索调用涉及外部 I/O；请求/响应契约与 TS 端协作重要 | 仍需自行选择持久化、身份验证、迁移和后台任务等组件；不能把框架异步能力等同于端到端自动高并发 |
+| Django + Django REST Framework | 全栈能力完整，ORM、Admin、认证等成熟，适合数据管理和传统业务后台 | 若后续用户、权限、内容管理和复杂 CRUD 成为核心，Django 可能减少拼装工作 | 当前首版 API 与 AI 工作流为主，Django 全套约定和管理界面不是首要需求 |
+| Flask | 轻量，核心简单，扩展自由 | 小型同步 API 或既有 Flask 项目完全可行 | 需要额外组合数据校验、API 文档和扩展；项目选择 FastAPI 是为了类型/契约路径开箱即用，不是 Flask 无法实现 |
+
+**面试回答要点：** 说明这是 API 优先、请求响应结构明确、外部 I/O 较多的 Python 服务；FastAPI 的类型验证和 OpenAPI 与 React/TypeScript 协作吻合。再承认 Django 的内置数据管理能力更强、Flask 更轻，并指出如果系统形态改变会重新选型。
+
+### 5.2 uv，而不是 pip + requirements.txt 或 Poetry
+
+项目使用 uv 管理 Python 项目依赖、虚拟环境和锁文件，配置以 `pyproject.toml` 为入口、`uv.lock` 固定解析结果。常规项目操作使用 `uv add`、`uv remove`、`uv sync`、`uv run`；不混用裸 `pip install` 来改变项目环境。
+
+| 方案 | 优点 | 取舍 |
+|---|---|---|
+| **uv（选择）** | 一个工具覆盖项目依赖、虚拟环境、解析与锁定；`uv.lock` 支持可复现同步；同时提供兼容 pip 风格的接口 | 生态仍在快速演进，团队需统一 `uv` 工作流和版本要求 |
+| pip + venv + requirements.txt | Python 自带/常见工具链，广泛兼容，概念简单 | 通常需组合环境创建、依赖锁定/导出等工具；单独的 requirements 文件通常不表达完整开发组、项目元数据和跨平台锁定意图 |
+| Poetry | 集成项目元数据、依赖管理、锁文件和发布工作流 | 也是合格方案；本项目已经确定 uv，因此再迁移不会带来足以抵消迁移成本的产品收益 |
+
+选择 uv 不只是因为安装速度；更关键的是项目级依赖声明、锁定和运行流程一致。uv 也提供 pip 兼容接口，但该能力不改变本仓库采用项目工作流和 `uv.lock` 的约定。
+
+**规范：** `pyproject.toml` 声明项目依赖，`uv.lock` 纳入版本控制，`.venv` 不提交；不要再以 `requirements.txt` 作为第二份权威依赖清单。CI/部署通过锁文件同步环境。
+
+## 6. Agent、检索与模型层
+
+### 6.1 从显式普通流程开始，再评估 LangGraph
+
+**V0.2 的第一步：** 把输入校验、模型调用、响应校验写成清楚的 Python 函数/服务。单次模型调用还没有足够状态和分支时，普通流程更容易调试、成本更低，也适合学习 LLM API 和结构化输出。
+
+**何时引入 LangGraph：** 当工作流确实需要维护会话状态、按校验结果分支、有限重试、暂停/恢复、持久化 checkpoint 或流式呈现阶段进度时，把这些步骤组织成显式有向图。可将解析、检索、生成、预览校验、修复各做成边界清楚的节点。
+
+**为什么不首版同时堆 LangChain + LangGraph：** 两者并非同一层：LangGraph 提供有状态工作流编排能力，LangChain 有模型和检索等更高层抽象。一起使用可能合理，但需要具体收益。首版优先使用稳定的模型 SDK/薄适配层；确实要统一模型供应商或复用检索集成时再比较 LangChain，避免框架封装遮住 Agent 基础机制。
+
+**可选方案：** 纯 Python 状态机/函数链最简单；PydanticAI 等 Agent 框架也可比较结构化输出和工具调用体验。最终决定看当前阶段要求、可观测性、恢复能力、团队学习目标与维护成本，不以框架数量作为项目亮点。
+
+### 6.2 RAG 与数据存储分阶段
+
+早期检索使用小型、精选、结构化组件参考目录，记录组件类别、适用框架、来源 URL、许可证、依赖和采集时间。根据有限语料先做元数据过滤/关键词检索，并建立手工案例判断结果是否相关。
+
+只有当语料规模和语义检索需求证明简单方法不足时，再增加 embeddings 与 PostgreSQL + pgvector。这样可以把 RAG 的质量问题与“接入数据库”区分开，先验证检索是否改善生成，再承担向量索引、迁移、部署和评估的成本。
+
+PostgreSQL 与 SQLite 的持久化选型仍应结合部署环境、并发、备份、迁移和多用户需求确定；不要因使用 pgvector 就默认第一版必须引入它，也不要把向量数据库本身当作 RAG 质量保证。
+
+### 6.3 模型供应商保持可替换，但不追求抽象过度
+
+当前未指定模型厂商。模型适配层仅统一本项目真正需要的调用能力：请求、超时、结构化输出、错误分类、用量元数据。先接入一种模型并用固定提示词和案例验证；第二种模型出现明确需要时，再验证适配层是否值得扩展。
+
+选择模型时记录：React/TSX 生成与修复表现、结构化输出支持、中文需求理解、延迟/成本、区域可用性、数据保留政策和服务稳定性。最终应由可复现任务集上的结果决定，而不是只依据排行榜。
+
+## 7. 预览运行时与安全边界：保持未决，先做 Spike
+
+预览是本项目最重要的风险决策之一，因为模型返回的是不可信代码。应先做一个隔离运行 Spike，比较：
+
+| 方案类别 | 可评估候选 | 主要问题 |
+|---|---|---|
+| 浏览器内运行 | WebContainers、Sandpack 等 | 浏览器/API 支持、支持的模板和依赖、资源限制、供应商许可/商业使用条款、宿主页面隔离方式 |
+| 远程容器/沙箱服务 | 临时容器或专用 sandbox 服务 | 每次执行成本、冷启动、资源配额、容器逃逸风险、网络与文件系统权限、并发清理 |
+| 仅编译不运行 | 解析/编译/静态校验并把错误返回给用户 | 安全性简单且可先交付，但不满足真正的实时交互预览 |
+
+进入选择前，必须验证最小运行样例、限制外连和依赖、隔离宿主凭证、超时/内存/CPU 上限、清理流程、错误返回和成本。一个带 `sandbox` 属性的 iframe 是纵深防御的一部分，不足以单独证明执行代码安全。验证完成前，产品可以只展示源代码或编译诊断，不执行生成代码。
+
+## 8. 面试中的回答方式
+
+### 30 秒项目版
+
+> 织页的前端用 React + TypeScript + Vite，因为产品本身要编辑、生成和预览 React 组件，客户端交互是主场景，现阶段没有 SSR 或 SEO 的硬需求。API 用 FastAPI，因为后端是 Python API，Pydantic 校验和自动 OpenAPI 契约便于和 TypeScript 前端协作；Python 环境由 uv 统一管理并锁定依赖。Agent 方面我先实现可观察的生成流程，等出现状态分支、重试和恢复需求再引入 LangGraph。生成代码执行环境和向量库会先用可复现用例验证，不会把安全或 RAG 能力停留在技术名词上。
+
+### 回答“为什么不用 X”的结构
+
+1. 先复述当时要解决的具体问题。
+2. 说明所选技术提供了哪些与问题直接相关的能力。
+3. 承认替代方案在哪些条件下更合适，以及本选择的成本。
+4. 给出重新评估的触发条件和证据。
+
+**示例：为什么不是 Django？**
+
+> 当前后端重点是异步模型/检索工作流和给 React 提供的类型化 JSON API；FastAPI 的请求校验、OpenAPI 和 Pydantic 模型让接口契约直接可见。Django 的 ORM、Admin 和完整业务后台更成熟，如果账号/权限/数据管理成为主要工作负载，我会重新比较 Django REST Framework。当前项目不是因为 Django 做不了，而是首版暂时用不到它的主要优势。
+
+### 不能只这样回答
+
+- “因为它快/流行/现在大家都用。” —— 没有说明业务适配和成本。
+- “用了 LangGraph，所以这是 Agent。” —— 需要说清状态、工具、分支、反馈、失败处理和评估。
+- “用了 pgvector，所以有高质量 RAG。” —— 还需证明来源、召回质量、过滤和固定案例结果。
+- “iframe 沙箱保证安全。” —— 隔离保证需要对运行时、权限、资源和网络策略做整体验证。
+- 把未实现的数据库、模型、沙箱、移动端功能写作项目成果。
+
+## 9. 官方资料
+
+用于理解各技术自身提供的能力；对比结论是结合织页需求后的工程判断，并非官方文档给出的排名。
+
+### Web 与跨端
+
+- [React：Quick Start](https://react.dev/learn) — React 组件和日常 UI 概念。
+- [Vue：Introduction](https://vuejs.org/guide/introduction.html) — Vue 的组件化与渐进式框架定位。
+- [Vite：Getting Started](https://vite.dev/guide/) — 开发服务器和构建工具定位。
+- [Next.js：App Router](https://nextjs.org/docs/app) — 服务端/客户端组件和 App Router 能力。
+- [React Native：Introduction](https://reactnative.dev/docs/getting-started) — 原生组件模型与 App 开发。
+
+### Monorepo 与 Python
+
+- [pnpm Workspaces](https://pnpm.io/workspaces) — pnpm workspace 配置与包管理。
+- [npm Workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces) — npm 的原生 workspace 替代路线。
+- [FastAPI Features](https://fastapi.tiangolo.com/features/) — OpenAPI、JSON Schema 与交互式文档。
+- [Django Overview](https://docs.djangoproject.com/en/stable/intro/overview/) — Django 的集成式 Web 框架能力。
+- [Flask Documentation](https://flask.palletsprojects.com/en/stable/) — Flask 的轻量 WSGI 框架定位。
+- [uv Documentation](https://docs.astral.sh/uv/) — Python 项目管理、环境和锁文件工作流。
+
+### Agent 与检索
+
+- [LangGraph Overview](https://docs.langchain.com/oss/python/langgraph/overview) — 有状态 Agent 工作流、持久化、流式与人类介入能力。
+- [pgvector](https://github.com/pgvector/pgvector) — PostgreSQL 向量相似度搜索扩展。
+
+> 官方文档会随版本变化。引入依赖或锁定版本时，应再次查看对应版本的官方文档、许可和部署要求。
