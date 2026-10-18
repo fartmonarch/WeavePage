@@ -1,0 +1,9 @@
+{
+    "name": "weavepage",
+    "private": true,
+    "packageManager": "pnpm@11.25.0",
+    "scripts": {
+        "dev:web": "pnpm --filter @weavepage/web dev",
+        "build:web": "pnpm --filter @weavepage/web build"
+    }
+}
