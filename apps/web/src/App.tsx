@@ -1,121 +1,86 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useState, type FormEvent } from 'react'
+import { generateComponent, type GenerateResponse } from '@weavepage/shared'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [description, setDescription] = useState('')
+  const [result, setResult] = useState<GenerateResponse | null>(null)
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const prompt = description.trim()
+    if (prompt.length < 3) {
+      setError('请至少输入 3 个字符。')
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const response = await generateComponent({ description: prompt })
+      setResult(response)
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : '发生未知错误。')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="workspace">
+      <header className="page-header">
+        <p className="eyebrow">WeavePage · V0.1</p>
+        <h1>React 组件工作台</h1>
+        <p>描述你想要的组件，查看 API 返回的模拟结果。</p>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <form className="request-card" onSubmit={handleSubmit}>
+        <label htmlFor="description">组件需求</label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="例如：一个带加载状态的提交按钮"
+          minLength={3}
+          maxLength={1000}
+          required
+          rows={5}
+        />
+        <div className="form-footer">
+          <span>{description.length}/1000</span>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? '请求中…' : '发送需求'}
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </form>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {error && (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      )}
+
+      {result && (
+        <section className="result-card" aria-live="polite">
+          <div className="result-heading">
+            <div>
+              <p className="eyebrow">模拟响应 · 尚未调用模型</p>
+              <h2>{result.component_name}</h2>
+            </div>
+            <code>{result.request_id}</code>
+          </div>
+          <p>{result.summary}</p>
+          <pre>
+            <code>{result.code}</code>
+          </pre>
+        </section>
+      )}
+    </main>
   )
 }
 
