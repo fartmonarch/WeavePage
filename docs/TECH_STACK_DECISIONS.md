@@ -69,7 +69,7 @@
 
 ### 4.2 为什么 Python API 不放进 pnpm workspace
 
-pnpm 管理 Node/TypeScript 依赖；Python API 有自己的运行时、依赖解析和锁文件，使用 uv 在 `services/api` 内独立管理。跨语言边界使用 HTTP API，而不是让 Python 直接导入 TypeScript 源码。
+pnpm 管理 Node/TypeScript 依赖；Python API 有自己的运行时、依赖解析和锁文件，使用 uv 在 `apps/api` 内独立管理。`apps/api` 虽与 Web、Mobile 同级，但不是 pnpm 包。跨语言边界使用 HTTP API，而不是让 Python 直接导入 TypeScript 源码。
 
 FastAPI 自动产生的 OpenAPI 描述将作为契约来源；后续可以从它生成 TypeScript 类型或 API 客户端，减少两端手写类型漂移。生成工具需在该需求出现时再选定。
 

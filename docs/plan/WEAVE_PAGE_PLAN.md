@@ -59,32 +59,31 @@
 weavepage/
 ├─ apps/
 │  ├─ web/                         # 当前：React + TypeScript + Vite 工作台
+│  ├─ api/                         # 当前：FastAPI 服务，独立使用 uv
+│  │  ├─ app/
+│  │  │  ├─ api/v1/                # HTTP 路由 / 依赖注入
+│  │  │  ├─ core/                  # 配置、日志、错误处理
+│  │  │  ├─ schemas/               # Pydantic 请求/响应契约
+│  │  │  ├─ services/              # 用例编排、生成服务
+│  │  │  ├─ agent/                 # 工作流状态、节点、提示词（达到阶段后创建）
+│  │  │  ├─ retrieval/             # 资料源、检索和许可元数据（达到阶段后创建）
+│  │  │  └─ main.py                # FastAPI 应用入口
+│  │  └─ tests/                    # API 单元与集成测试（达到阶段后建立）
 │  └─ mobile/                      # 后续：Expo + React Native
-├─ services/
-│  └─ api/                         # 当前：FastAPI，独立使用 uv
-│     ├─ app/
-│     │  ├─ api/v1/                # HTTP 路由 / 依赖注入
-│     │  ├─ core/                  # 配置、日志、错误处理
-│     │  ├─ schemas/               # Pydantic 请求/响应契约
-│     │  ├─ services/              # 用例编排、生成服务
-│     │  ├─ agent/                 # 工作流状态、节点、提示词（达到阶段后创建）
-│     │  ├─ retrieval/             # 资料源、检索和许可元数据（达到阶段后创建）
-│     │  └─ main.py                # FastAPI 应用入口
-│     └─ tests/                    # 按单元、API 集成测试逐步建立
 ├─ packages/
 │  ├─ contracts/                   # 从 OpenAPI 生成的 TS 类型 / 客户端
 │  ├─ shared/                      # 前端 API 调用和纯业务逻辑
 │  ├─ tokens/                      # 跨平台颜色、间距、字体等 token 源
 │  └─ ui/                          # 有实际复用需求后再建立；不提前追求 DOM/RN 共用组件
 ├─ docs/
-│  ├─ plan/WEAVE_PAGE_PLAN.md      # 本蓝图，持续更新状态
+│  ├─ plan/WEAVE_PAGE_PLAN.md      # 项目目标与版本验收蓝图
 │  ├─ adr/                         # 影响后续的架构决策及取舍
 │  └─ development/                 # 运行、演示、迭代记录等短文档
 ├─ pnpm-workspace.yaml             # 仅纳入 apps/* 和 packages/*
 └─ README.md
 ```
 
-**目录规则：** `services/api` 不归 pnpm 管理。前端和后端通过 HTTP/OpenAPI 合作。`apps/mobile` 在 Web API 和共享纯逻辑稳定后才创建。`.web.tsx` / `.native.tsx` 仅在同一个共享组件确有平台分支时采用。
+**目录规则：** `apps/api` 是与 Web、Mobile 并列的可运行应用，但 Python 依赖仍由 uv 管理，不属于 pnpm 包；pnpm workspace 只负责带 `package.json` 的 JavaScript/TypeScript 包。前端和后端通过 HTTP/OpenAPI 合作。`apps/mobile` 在 Web API 和共享纯逻辑稳定后才创建。`.web.tsx` / `.native.tsx` 仅在同一个共享组件确有平台分支时采用。
 
 ## 4. 版本路线图与完成标准
 
