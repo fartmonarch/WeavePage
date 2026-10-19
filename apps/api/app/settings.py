@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     deepseek_api_key: SecretStr = SecretStr("")
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-flash"
-    request_timeout_seconds: float = 45.0
+    request_timeout_seconds: float = 120.0
 
 
 settings = Settings()

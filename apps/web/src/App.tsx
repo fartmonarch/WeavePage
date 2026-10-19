@@ -36,9 +36,9 @@ function App() {
   return (
     <main className="workspace">
       <header className="page-header">
-        <p className="eyebrow">WeavePage · V0.1</p>
+        <p className="eyebrow">WeavePage · V0.2</p>
         <h1>React 组件工作台</h1>
-        <p>描述你想要的组件，查看 API 返回的模拟结果。</p>
+        <p>描述你想要的组件，查看模型生成的 React 组件代码。</p>
       </header>
 
       <form className="request-card" onSubmit={handleSubmit}>
@@ -71,7 +71,7 @@ function App() {
         <section className="result-card" aria-live="polite">
           <div className="result-heading">
             <div>
-              <p className="eyebrow">模拟响应 · 尚未调用模型</p>
+              <p className="eyebrow">DeepSeek 生成结果</p>
               <h2>{result.component_name}</h2>
             </div>
             <code>{result.request_id}</code>

@@ -46,7 +46,7 @@ async def generate(request: GenerateRequest):
     except ModelOutputError as exc:
         raise HTTPException(
             status_code=502,
-            detail="模型返回内容格式不正确，请重试。",
+            detail=f"模型返回内容格式不正确：{exc}",
         ) from exc
     except ModelProviderError as exc:
         raise HTTPException(
