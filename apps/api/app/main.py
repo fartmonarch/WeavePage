@@ -1,24 +1,19 @@
-from typing import Literal
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
+from .generator import (
+    ModelConfigurationError,
+    ModelOutputError,
+    ModelProviderError,
+    ModelRateLimitError,
+    ModelTimeoutError,
+    generate_component,
+)
+from .schemas import GenerateRequest, GenerateResponse
 
-class GenerateRequest(BaseModel):
-    description: str = Field(min_length=3, max_length=1000)
-
-
-class GenerateResponse(BaseModel):
-    request_id: str
-    mode: Literal["mock"]
-    component_name: str
-    summary: str
-    code: str
-
-
-app = FastAPI(title="WeavePage API", version="0.1.0")
+app = FastAPI(title="WeavePage API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,19 +25,38 @@ app.add_middleware(
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate_component(request: GenerateRequest):
+async def generate(request: GenerateRequest):
+    try:
+        generated = await generate_component(request.description)
+    except ModelConfigurationError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="服务端尚未配置 DeepSeek API Key。",
+        ) from exc
+    except ModelTimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="模型请求超时，请稍后重试。",
+        ) from exc
+    except ModelRateLimitError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail="模型服务当前请求过多，请稍后重试。",
+        ) from exc
+    except ModelOutputError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="模型返回内容格式不正确，请重试。",
+        ) from exc
+    except ModelProviderError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="暂时无法连接模型服务，请检查配置或稍后重试。",
+        ) from exc
+
     return GenerateResponse(
         request_id=str(uuid4()),
-        mode="mock",
-        component_name="GeneratedButton",
-        summary=(f"已收到你的需求：{request.description}。当前返回模拟结果，还没有调用模型。"),
-        code="""export function GeneratedButton() {
-                return (
-                    <button type="button">
-                        示例组件
-                    </button>
-                        ) ;
-                }""",
+        **generated.model_dump(),
     )
 
 

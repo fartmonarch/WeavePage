@@ -30,5 +30,6 @@
   },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
-  }
+  },
+  "python.terminal.useEnvFile": true
 }

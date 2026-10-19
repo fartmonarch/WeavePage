@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { generateComponent, type GenerateResponse } from '@weavepage/shared'
 import './App.css'
 
@@ -8,9 +8,11 @@ function App() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    // 阻止浏览器默认行为：提交表单后刷新页面。在 React 单页应用里通常都要阻止。
     event.preventDefault()
 
+    // 去掉前后空格
     const prompt = description.trim()
     if (prompt.length < 3) {
       setError('请至少输入 3 个字符。')
