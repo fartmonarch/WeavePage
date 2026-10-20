@@ -107,13 +107,25 @@ async def generate_component(description: str) -> GeneratedComponent:
     content = choice.message.content
     if not content or not content.strip():
         raise ModelOutputError("模型返回的 content 为空。")
+    content = content.strip()
+
+    # 兼容模型接口偶尔附带的结束标签。
+    final_tag = "</final>"
+    if content.endswith(final_tag):
+        content = content[: -len(final_tag)].rstrip()
+        print("[model-json] 已移除尾部 </final> 标签", flush=True)
 
     try:
         payload = json.loads(content)
     except json.JSONDecodeError as exc:
+        start = max(0, exc.pos - 100)
+        end = min(len(content), exc.pos + 150)
+
         print(
             f"[model-json] finish_reason={choice.finish_reason}, "
-            f"reason={exc.msg}, position={exc.pos}",
+            f"reason={exc.msg}, position={exc.pos}, "
+            f"content_length={len(content)}, "
+            f"context={content[start:end]!r}",
             flush=True,
         )
 

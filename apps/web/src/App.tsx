@@ -1,6 +1,9 @@
 import { useState, type SubmitEvent } from 'react'
 import { generateComponent, type GenerateResponse } from '@weavepage/shared'
+import { lazy, Suspense } from 'react'
 import './App.css'
+
+const SandpackComponentPreview = lazy(() => import('./preview/SandpackComponentPreview'))
 
 function App() {
   const [description, setDescription] = useState('')
@@ -77,7 +80,14 @@ function App() {
             <code>{result.request_id}</code>
           </div>
           <p>{result.summary}</p>
-          <pre>
+          <Suspense fallback={<p>正在加载隔离预览环境…</p>}>
+            <SandpackComponentPreview
+              code={result.code}
+              componentName={result.component_name}
+              bundlerUrl={import.meta.env.VITE_SANDBOX_BUNDLER_URL ?? ''}
+            />
+          </Suspense>
+          <pre className="generated-source">
             <code>{result.code}</code>
           </pre>
         </section>

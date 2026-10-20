@@ -79,7 +79,7 @@
   margin-top: 24px;
 }
 
-.result-card pre {
+.generated-source {
   overflow-x: auto;
   padding: 16px;
   border-radius: 8px;
@@ -87,7 +87,7 @@
   background: #20242c;
 }
 
-.result-card pre code {
+.generated-source code {
   font-family: Consolas, monospace;
   white-space: pre;
 }
