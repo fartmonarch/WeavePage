@@ -83,6 +83,7 @@ function App() {
           <Suspense fallback={<p>正在加载隔离预览环境…</p>}>
             <SandpackComponentPreview
               code={result.code}
+              previewCode={result.preview_code}
               componentName={result.component_name}
               bundlerUrl={import.meta.env.VITE_SANDBOX_BUNDLER_URL ?? ''}
             />

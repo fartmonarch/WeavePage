@@ -35,29 +35,49 @@ class ModelOutputError(Exception):
 
 
 OUTPUT_EXAMPLE = {
-    "component_name": "PrimaryButton",
-    "summary": "一个主要操作按钮",
-    "code": """export function PrimaryButton() {
-  return <button type="button">继续</button>;
+    "component_name": "GreetingTitle",
+    "summary": "展示传入文本的标题组件",
+    "code": """export function GreetingTitle({ text }: { text: string }) {
+  return <h1>{text}</h1>;
+}""",
+    "preview_code": """import { GreetingTitle } from './GeneratedComponent';
+
+export default function App() {
+  return <GreetingTitle text="Hello, WeavePage" />;
 }""",
 }
 
 SYSTEM_PROMPT = """
-你负责生成可复用的 React + TypeScript 单文件组件。
+你负责生成一个可复用的 React + TypeScript 单文件组件，
+以及展示该组件效果的最小预览入口。
 
-请只返回一个合法 JSON 对象，不要添加 Markdown 代码围栏或额外说明。
-JSON 必须包含以下三个字符串字段：
-- component_name：PascalCase 组件名
-- summary：一句话说明组件功能
-- code：完整的 React + TypeScript 组件源码
+请只返回一个合法 JSON 对象，不要添加 Markdown 代码围栏、
+额外说明、<final> 或 </final> 标签。
 
-源码要求：
-- 使用命名导出，导出名与 component_name 一致。
+JSON 必须包含以下四个字符串字段：
+- component_name：PascalCase 组件名。
+- summary：一句话说明组件功能。
+- code：组件的完整 TSX 源码，对应 /GeneratedComponent.tsx。
+- preview_code：预览入口的完整 TSX 源码，对应 /App.tsx。
+
+组件源码要求：
+- 使用命名导出，导出名必须与 component_name 一致。
 - 只依赖 React，不引入其他 npm 包。
-- 代码适合保存为单个 .tsx 文件。
-- 实现应精简，避免添加与需求无关的演示页面和功能。
+- 所有实现放在单个文件中，不依赖额外 CSS、图片或其他文件。
+- 样式使用 React 的 style 属性。
+- 实现应精简，避免添加与需求无关的功能。
 
-code 是 JSON 字符串，源码中的引号、换行和反斜杠必须按 JSON 规则转义。
+预览入口要求：
+- 从 './GeneratedComponent' 导入生成的命名组件。
+- 默认导出 function App()。
+- 为组件的所有必填属性提供有效的示例值。
+- 需要文本、列表、children 或回调时，在入口中提供完整示例。
+- 入口应直接展示用户要求的效果。
+- 不调用 createRoot 或 ReactDOM.render，模板已负责挂载。
+- 只允许导入 React 和 './GeneratedComponent'。
+
+code 和 preview_code 都是 JSON 字符串。
+源码中的引号、换行和反斜杠必须按 JSON 规则转义。
 
 JSON 格式示例：
 """ + json.dumps(OUTPUT_EXAMPLE, ensure_ascii=False)

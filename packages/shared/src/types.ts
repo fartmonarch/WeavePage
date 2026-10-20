@@ -7,4 +7,5 @@ export interface GenerateResponse {
   component_name: string
   summary: string
   code: string
+  preview_code: string
 }
