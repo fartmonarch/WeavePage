@@ -10,6 +10,7 @@ function App() {
   const [result, setResult] = useState<GenerateResponse | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [generationId, setGenerationId] = useState(0)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     // 阻止浏览器默认行为：提交表单后刷新页面。在 React 单页应用里通常都要阻止。
@@ -23,6 +24,7 @@ function App() {
     }
 
     setIsLoading(true)
+    setGenerationId((value) => value + 1)
     setError('')
     setResult(null)
 
@@ -39,7 +41,7 @@ function App() {
   return (
     <main className="workspace">
       <header className="page-header">
-        <p className="eyebrow">WeavePage · V0.2</p>
+        <p className="eyebrow">WeavePage · V0.3</p>
         <h1>React 组件工作台</h1>
         <p>描述你想要的组件，查看模型生成的 React 组件代码。</p>
       </header>
@@ -70,27 +72,26 @@ function App() {
         </p>
       )}
 
-      {result && (
-        <section className="result-card" aria-live="polite">
+      {(isLoading || result) && (
+        <section className="result-card" aria-busy={isLoading}>
           <div className="result-heading">
             <div>
               <p className="eyebrow">DeepSeek 生成结果</p>
-              <h2>{result.component_name}</h2>
+              <h2>{result?.component_name ?? '正在生成组件'}</h2>
             </div>
-            <code>{result.request_id}</code>
+            {result && <code>{result.request_id}</code>}
           </div>
-          <p>{result.summary}</p>
-          <Suspense fallback={<p>正在加载隔离预览环境…</p>}>
+          {result && <p>{result.summary}</p>}
+          <Suspense fallback={<p>正在准备代码视图…</p>}>
             <SandpackComponentPreview
-              code={result.code}
-              previewCode={result.preview_code}
-              componentName={result.component_name}
+              key={generationId}
+              code={result?.code ?? ''}
+              previewCode={result?.preview_code ?? ''}
+              componentName={result?.component_name ?? ''}
               bundlerUrl={import.meta.env.VITE_SANDBOX_BUNDLER_URL ?? ''}
+              isGenerating={isLoading}
             />
           </Suspense>
-          <pre className="generated-source">
-            <code>{result.code}</code>
-          </pre>
         </section>
       )}
     </main>
