@@ -13,7 +13,7 @@ from .generator import (
 )
 from .schemas import GenerateRequest, GenerateResponse
 
-app = FastAPI(title="WeavePage API", version="0.2.0")
+app = FastAPI(title="WeavePage API", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,

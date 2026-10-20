@@ -86,6 +86,7 @@ function App() {
             <SandpackComponentPreview
               key={generationId}
               code={result?.code ?? ''}
+              css={result?.css ?? ''}
               previewCode={result?.preview_code ?? ''}
               componentName={result?.component_name ?? ''}
               bundlerUrl={import.meta.env.VITE_SANDBOX_BUNDLER_URL ?? ''}
